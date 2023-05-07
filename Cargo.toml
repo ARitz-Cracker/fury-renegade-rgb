@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 repository = "https://github.com/ARitz-Cracker/fury-renegade-rgb"
 authors = ["Aritz Beobide-Cardinal <aritz@aritzcracker.ca>"]
+description = "A small CLI app that allows you to control the RGB lights on Kingston Fury Renegade RAM"
+license = "GPL-3.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
