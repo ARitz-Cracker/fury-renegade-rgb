@@ -1,6 +1,6 @@
-use std::{time::Duration, thread};
+use std::{thread, time::Duration};
 
-use i2cdev::{linux::LinuxI2CDevice, core::I2CDevice};
+use i2cdev::{core::I2CDevice, linux::LinuxI2CDevice};
 
 pub(crate) trait HeadBangingI2CDevice {
 	fn force_smbus_read_byte_data(&mut self, register: u8) -> std::result::Result<u8, std::io::Error>;
@@ -35,9 +35,7 @@ impl HeadBangingI2CDevice for LinuxI2CDevice {
 		let mut retry_count = 1;
 		loop {
 			match self.smbus_read_byte_data(register) {
-				Ok(val) => {
-					return Ok(val)
-				},
+				Ok(val) => return Ok(val),
 				Err(err) => {
 					let io_err: std::io::Error = err.into();
 					if io_err.raw_os_error() == Some(6) {

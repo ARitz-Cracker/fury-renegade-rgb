@@ -1,6 +1,6 @@
 [package]
 name = "fury-renegade-rgb"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 repository = "https://github.com/ARitz-Cracker/fury-renegade-rgb"
 authors = ["Aritz Beobide-Cardinal <aritz@aritzcracker.ca>"]
@@ -10,7 +10,7 @@ license = "GPL-3.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-i2cdev = "0.5.1"
-thiserror = "1.0"
-color-eyre = "0.5"
-bpaf = { version = "0.7", features = ["derive"] }
+i2cdev = "0.6.2"
+thiserror = "2.0"
+color-eyre = "0.6"
+bpaf = { version = "0.9", features = ["derive"] }

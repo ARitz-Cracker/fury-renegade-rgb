@@ -25,20 +25,19 @@ You can omit any of the `-1`, `-2`, `-3`, and `-4` flags if you don't wanna send
 * `reset` does the following
   * Syncronizes the sticks
   * Sets all brightness values to 100%
-  * Sets custom colour to #000000
   * Sets pattern to rainbow
   * Resets timing delays and offsets
 * `sync` syncs the sticks together
   * Note that you can only syncronize sticks that are beside each other. E.g., you can sync all of them together, 1 with 2, and 3 with 4, but you can't sync 1 with 3.
 * `colour-brightness --red VALUE --green VALUE --blue VALUE`
-  * Sets a sort of colour filter mask... thing
-* `brightness --value VALUE`
+  * multiplies each RGB component by the specified percentegaes after the animation. For example, if an animation naturally has a "grey" background, it can be changed here.
+* `brightness VALUE`
   * Between 0 and 100, dims the overall pattern with 100 being the default
-* `pattern-start-offset --raw-offset VALUE`
+* `pattern-start-offset VALUE`
   * Sets a delay before starting the pattern. On a syncronized set of sticks, the offset appears to be additive
-* `pattern-repeat-delay --raw-delay VALUE`
-  * A delay before the pattern repeats, this should be set to the same value on all sticks that are syncronized
-* `pattern --style STYLE --red VALUE --green VALUE --blue VALUE --colour-cycle`
+* `pattern-repeat-delay VALUE`
+  * A delay before the pattern repeats, this should be set to the same value on all sticks that are syncronized. It appears that if one stick restarts its pattern, all of them do.
+* `pattern STYLE [COLOUR ...]`
   * `STYLE` can be any of the following
     * `solid` - Always shows custom colour
     * `rainbow` - The unicorn barf we all know and love, no custimization options have any effect
@@ -52,9 +51,4 @@ You can omit any of the `-1`, `-2`, `-3`, and `-4` flags if you don't wanna send
     * `fire` - Fire pattern, no custimization options have any effect, looks best with 4 sticks
     * `sparkles` - Sprikles random colours around the ram, non-customizable, looks best with 4 sticks
     * `fury` - Writes "F" on the sticks, then "U", then "R", then "Y". Looks best with 4 sticks.
-  * `VALUE ` is a value between 0 and 255
-  * `--colour-cycle` can be omitted, when specified, it will cycle the pattern with the following colours: custom, green, orange, blue, yellow-sih green, pink, cyan, yellow, bright-punk, bright-cyan, red
-* `pattern-style STYLE`
-  * Only sets the `STYLE` which is the same as above
-* `pattern-colour --red VALUE --green VALUE --blue VALUE`
-  * Only sets the colour, which has the same `VALUE`s as above
+  * `COLOUR` can be comma-seperated values, like "255,255,255" or a hex-colour, like "#FFFFFF". Up to 11 colours can be specified, each "loop" of the pattern will use the next custom colour.

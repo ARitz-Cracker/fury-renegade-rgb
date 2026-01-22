@@ -1,13 +1,13 @@
 use std::{path::Path, str::FromStr};
 
-use i2cdev::linux::LinuxI2CDevice;
 use color_eyre::eyre::Result;
+use i2cdev::linux::LinuxI2CDevice;
 
-use crate::{headbang::HeadBangingI2CDevice, error::FuryControllerError};
+use crate::{error::FuryControllerError, headbang::HeadBangingI2CDevice, types::Colour};
 
 pub(crate) struct MultiRamController {
 	bus: LinuxI2CDevice,
-	sticks: Vec<u16>
+	sticks: Vec<u16>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -36,65 +36,36 @@ pub(crate) enum PatternStyle {
 	/// Sprikles random colours around the ram, non-customizable, looks best with 4 sticks
 	Sparkles = 0x0a,
 	/// Writes "F" on the sticks, then "U", then "R", then "Y". Looks best with 4 sticks.
-	Fury = 0x0b
+	Fury = 0x0b,
 }
 impl FromStr for PatternStyle {
-    type Err = FuryControllerError;
+	type Err = FuryControllerError;
 
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        match s {
-			"solid" => {
-				Ok(Self::Solid)
-			},
-			"rainbow" => {
-				Ok(Self::Rainbow)
-			}
-			"scan" => {
-				Ok(Self::Scan)
-			}
-			"breathe" => {
-				Ok(Self::Breathe)
-			}
-			"fade" => {
-				Ok(Self::Fade)
-			}
-			"stripe" => {
-				Ok(Self::Stripe)
-			}
-			"trail" => {
-				Ok(Self::Trail)
-			}
-			"lightning" => {
-				Ok(Self::Lightning)
-			}
-			"countdown" => {
-				Ok(Self::Countdown)
-			}
-			"fire" => {
-				Ok(Self::Fire)
-			}
-			"sparkles" => {
-				Ok(Self::Sparkles)
-			}
-			"fury" => {
-				Ok(Self::Fury)
-			}
-			
-			_ => Err(FuryControllerError::UnknownPatternStyle(s.to_string()))
+	fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+		match s {
+			"solid" => Ok(Self::Solid),
+			"rainbow" => Ok(Self::Rainbow),
+			"scan" => Ok(Self::Scan),
+			"breathe" => Ok(Self::Breathe),
+			"fade" => Ok(Self::Fade),
+			"stripe" => Ok(Self::Stripe),
+			"trail" => Ok(Self::Trail),
+			"lightning" => Ok(Self::Lightning),
+			"countdown" => Ok(Self::Countdown),
+			"fire" => Ok(Self::Fire),
+			"sparkles" => Ok(Self::Sparkles),
+			"fury" => Ok(Self::Fury),
+
+			_ => Err(FuryControllerError::UnknownPatternStyle(s.to_string())),
 		}
-    }
+	}
 }
 impl MultiRamController {
-	pub fn new<P: AsRef<Path>>(
-        path: P,
-        sticks: Vec<u16>,
-    ) -> Result<Self> {
-		Ok(
-			MultiRamController {
-				bus: LinuxI2CDevice::new(path, sticks[0])?,
-				sticks
-			}
-		)
+	pub fn new<P: AsRef<Path>>(path: P, sticks: Vec<u16>) -> Result<Self> {
+		Ok(MultiRamController {
+			bus: LinuxI2CDevice::new(path, sticks[0])?,
+			sticks,
+		})
 	}
 	#[inline]
 	fn write_to_all(&mut self, register: u8, value: u8) -> Result<()> {
@@ -105,12 +76,12 @@ impl MultiRamController {
 		Ok(())
 	}
 	#[inline]
-	fn start_command(&mut self) -> Result<()>  {
+	fn start_command(&mut self) -> Result<()> {
 		self.write_to_all(0x08, 0x53)?;
 		Ok(())
 	}
 	#[inline]
-	fn end_command(&mut self) -> Result<()>  {
+	fn end_command(&mut self) -> Result<()> {
 		self.write_to_all(0x08, 0x44)?;
 		Ok(())
 	}
@@ -141,7 +112,7 @@ impl MultiRamController {
 		&mut self,
 		r_brightness_percent: u8,
 		g_brightness_percent: u8,
-		b_brightness_percent: u8
+		b_brightness_percent: u8,
 	) -> Result<()> {
 		self.start_command()?;
 		self.write_to_all(0x2d, r_brightness_percent)?;
@@ -151,10 +122,7 @@ impl MultiRamController {
 		Ok(())
 	}
 	/// Default value is 100
-	pub fn set_brightness_percent(
-		&mut self,
-		brightness_percent: u8,
-	) -> Result<()> {
+	pub fn set_brightness_percent(&mut self, brightness_percent: u8) -> Result<()> {
 		self.start_command()?;
 		self.write_to_all(0x20, brightness_percent)?;
 		self.end_command()?;
@@ -163,54 +131,32 @@ impl MultiRamController {
 	/// Default value is 0
 	pub fn set_pattern_start_offset(&mut self, raw_offset: u8) -> Result<()> {
 		self.start_command()?;
-		self.write_to_all(0x0d, raw_offset)?; 
+		self.write_to_all(0x0d, raw_offset)?;
 		self.end_command()?;
 		Ok(())
 	}
 	/// Default value is 1, all should be set to the same value
 	pub fn set_pattern_repeat_delay(&mut self, raw_delay: u8) -> Result<()> {
 		self.start_command()?;
-		self.write_to_all(0x27, raw_delay)?; 
+		self.write_to_all(0x27, raw_delay)?;
 		self.end_command()?;
 		Ok(())
 	}
-	pub fn set_pattern(
-		&mut self,
-		pattern: PatternStyle,
-		r: u8,
-		g: u8,
-		b: u8,
-		colour_cycle: bool
-	) -> Result<()> {
-		self.start_command()?;
-		self.write_to_all(0x09, pattern as u8)?; 
-		// 0x00=custom colour only, 0x0b = Cycle colours, (values greater than 0x0b appear to be undefined behaviour)
-		self.write_to_all(0x30, if colour_cycle { 0x0b } else { 0x00 })?;
-		self.write_to_all(0x31, r)?;
-		self.write_to_all(0x32, g)?;
-		self.write_to_all(0x33, b)?;
-		self.end_command()?;
-		Ok(())
-	}
-	pub fn set_pattern_style_only(
-		&mut self,
-		pattern: PatternStyle
-	) -> Result<()> {
+	pub fn set_pattern(&mut self, pattern: PatternStyle, colorus: &[Colour]) -> Result<()> {
+		if colorus.len() > 0x0b {
+			return Err(color_eyre::eyre::eyre!(
+				"Cannot set more than 11 colours, got {}",
+				colorus.len()
+			));
+		}
 		self.start_command()?;
 		self.write_to_all(0x09, pattern as u8)?;
-		self.end_command()?;
-		Ok(())
-	}
-	pub fn set_pattern_colour_only(
-		&mut self,
-		r: u8,
-		g: u8,
-		b: u8,
-	) -> Result<()> {
-		self.start_command()?;
-		self.write_to_all(0x31, r)?;
-		self.write_to_all(0x32, g)?;
-		self.write_to_all(0x33, b)?;
+		self.write_to_all(0x30, colorus.len() as u8)?;
+		for (i, colour) in colorus.iter().enumerate() {
+			self.write_to_all(0x31 + (i as u8 * 3), colour.red)?;
+			self.write_to_all(0x32 + (i as u8 * 3), colour.green)?;
+			self.write_to_all(0x33 + (i as u8 * 3), colour.blue)?;
+		}
 		self.end_command()?;
 		Ok(())
 	}
@@ -222,7 +168,7 @@ impl MultiRamController {
 		self.set_rgb_brightness_percent(100, 100, 100)?;
 		self.set_pattern_start_offset(0)?;
 		self.set_pattern_repeat_delay(1)?;
-		self.set_pattern(PatternStyle::Rainbow, 0, 0, 0, false)?;
+		self.set_pattern(PatternStyle::Rainbow, &[Colour::default()])?;
 		self.sync_timings()?;
 		Ok(())
 	}

@@ -1,13 +1,16 @@
-mod headbang;
-mod fury_commands;
 mod error;
+mod fury_commands;
+mod headbang;
+mod types;
 
 use std::path::PathBuf;
 
 use color_eyre::eyre::Result;
-use fury_commands::{PatternStyle, MultiRamController};
+use fury_commands::{MultiRamController, PatternStyle};
 
 use bpaf::Bpaf;
+
+use crate::types::Colour;
 
 #[derive(Clone, Debug, Bpaf)]
 #[bpaf(options, version)]
@@ -29,7 +32,7 @@ struct FuryControllerOptions {
 	/// Run command on stick 4
 	stick_4: bool,
 	#[bpaf(external(action))]
-	action: Action
+	action: Action,
 }
 
 fn is_percent(number: &u8) -> bool {
@@ -58,64 +61,37 @@ pub(crate) enum Action {
 		green: u8,
 		/// Value between 0 and 100
 		#[bpaf(short, long, guard(is_percent, PERCENT_TOO_HIGH))]
-		blue: u8
+		blue: u8,
 	},
 	#[bpaf(command("brightness"))]
 	/// Sets the overall brightness of the stick
 	Brightness {
-		#[bpaf(short, long, guard(is_percent, PERCENT_TOO_HIGH))]
+		#[bpaf(positional, guard(is_percent, PERCENT_TOO_HIGH))]
 		/// Value between 0 and 100
-		value: u8
+		value: u8,
 	},
 	#[bpaf(command("pattern-start-offset"))]
 	/// Sets a delay before starting the pattern. On a syncronized set of sticks, the offset appears to be additive
 	PatternStartOffset {
-		#[bpaf(short, long)]
-		raw_offset: u8
+		#[bpaf(positional)]
+		raw_offset: u8,
 	},
 	#[bpaf(command("pattern-repeat-delay"))]
 	/// A delay before the pattern repeats, this should be set to the same value on all sticks
 	PatternRepeatDelay {
-		#[bpaf(short, long)]
-		raw_delay: u8
+		#[bpaf(positional)]
+		raw_delay: u8,
 	},
 	#[bpaf(command("pattern"))]
 	/// Which pattern and style to use
 	Pattern {
-		#[bpaf(short, long)]
+		#[bpaf(positional)]
 		/// Can be one of: solid, rainbow, scan, breathe, fade, stripe, trail, lightning, countdown, fire, sparkles, fury
 		style: PatternStyle,
-		#[bpaf(short, long)]
+		#[bpaf(positional)]
 		/// Value form 0 to 255
-		red: u8,
-		#[bpaf(short, long)]
-		/// Value form 0 to 255
-		green: u8,
-		#[bpaf(short, long)]
-		/// Value form 0 to 255
-		blue: u8,
-		#[bpaf(short, long)]
-		/// Cycles between the following colours: custom, green, orange, blue, yellow-sih green, pink, cyan, yellow, bright-punk, bright-cyan, red
-		colour_cycle: bool
+		colours: Vec<Colour>,
 	},
-	#[bpaf(command("pattern-style"))]
-	/// Only sets the pattern style, can be one of solid, rainbow, scan, breathe, fade, stripe, trail, lightning, countdown, fire, sparkles, fury
-	PatternStyle(
-		PatternStyle
-	),
-	#[bpaf(command("pattern-colour"))]
-	/// Only sets the pattern custom colour
-	PatternColour {
-		#[bpaf(short, long)]
-		/// Value form 0 to 255
-		red: u8,
-		#[bpaf(short, long)]
-		/// Value form 0 to 255
-		green: u8,
-		#[bpaf(short, long)]
-		/// Value form 0 to 255
-		blue: u8,
-	}
 }
 
 const STICK_ADDRESS_1: u16 = 0x60;
@@ -138,17 +114,16 @@ fn main() -> Result<()> {
 	if opts.stick_4 {
 		sticks.push(STICK_ADDRESS_4);
 	}
-	let mut fury_controller = MultiRamController::new(
-		opts.bus,
-		sticks
-	)?;
+	println!("Running command on sticks: {:?}", sticks);
+	println!("opts: {:?}", opts);
+	let mut fury_controller = MultiRamController::new(opts.bus, sticks)?;
 	match opts.action {
 		Action::Noop => {
 			fury_controller.noop()?;
 		},
 		Action::Reset => {
 			fury_controller.reset()?;
-		}
+		},
 		Action::Sync => {
 			fury_controller.sync_timings()?;
 		},
@@ -164,14 +139,8 @@ fn main() -> Result<()> {
 		Action::PatternRepeatDelay { raw_delay } => {
 			fury_controller.set_pattern_repeat_delay(raw_delay)?;
 		},
-		Action::Pattern { style, red, green, blue, colour_cycle } => {
-			fury_controller.set_pattern(style, red, green, blue, colour_cycle)?;
-		},
-		Action::PatternStyle(style) => {
-			fury_controller.set_pattern_style_only(style)?;
-		}
-		Action::PatternColour { red, green, blue } => {
-			fury_controller.set_pattern_colour_only(red, green, blue)?;
+		Action::Pattern { style, colours } => {
+			fury_controller.set_pattern(style, &colours)?;
 		},
 	}
 	Ok(())
